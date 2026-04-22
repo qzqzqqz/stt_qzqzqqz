@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# 虚拟环境
+.venv/
+venv/
+
+# 环境变量（含敏感信息）
+backend/.env
+
+# 上传的音频文件
+backend/uploads/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 测试和缓存
+backend/.pytest_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Superpowers 会话数据（视觉伴侣临时文件）
+.superpowers/
+
+# Node / 前端（后续创建时生效）
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Alembic 备份
+backend/alembic/versions/__pycache__/
