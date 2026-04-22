@@ -42,3 +42,4 @@ frontend/.vite/
 
 # Alembic 备份
 backend/alembic/versions/__pycache__/
+/stitch_minimal_audio_transcription/
