@@ -599,7 +599,7 @@ redis-cli -p 6380 ping
 - Create: `backend/app/api/v1/auth.py`
 - Modify: `backend/app/main.py` — 注册 auth 路由
 
-- [ ] **Step 1: 创建 Pydantic Schemas**
+- [x] **Step 1: 创建 Pydantic Schemas**
 
 ```python
 # backend/app/schemas/user.py
@@ -634,7 +634,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
 ```
 
-- [ ] **Step 2: 创建安全工具 — JWT + bcrypt**
+- [x] **Step 2: 创建安全工具 — JWT + bcrypt**
 
 ```python
 # backend/app/core/security.py
@@ -676,7 +676,7 @@ def decode_token(token: str) -> dict | None:
         return None
 ```
 
-- [ ] **Step 3: 创建依赖注入 — get_current_user**
+- [x] **Step 3: 创建依赖注入 — get_current_user**
 
 ```python
 # backend/app/api/deps.py
@@ -718,7 +718,7 @@ async def get_current_user(
     return user
 ```
 
-- [ ] **Step 4: 创建认证路由**
+- [x] **Step 4: 创建认证路由**
 
 ```python
 # backend/app/api/v1/auth.py
@@ -797,7 +797,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 ```
 
-- [ ] **Step 5: 创建 v1 路由聚合并注册到 main.py**
+- [x] **Step 5: 创建 v1 路由聚合并注册到 main.py**
 
 ```python
 # backend/app/api/v1/__init__.py
