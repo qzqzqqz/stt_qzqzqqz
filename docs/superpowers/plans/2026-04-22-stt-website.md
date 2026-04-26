@@ -346,7 +346,7 @@ alembic init alembic
 
 这会生成 `alembic.ini` 和 `alembic/` 目录。
 
-- [ ] **Step 6: 配置 alembic.ini — 指向数据库 URL**
+- [x] **Step 6: 配置 alembic.ini — 指向数据库 URL**
 
 编辑 `alembic.ini`，将 `sqlalchemy.url` 改为从配置读取：
 
@@ -358,7 +358,7 @@ sqlalchemy.url = postgresql+asyncpg://stt:stt123@localhost:5432/stt_db
 
 > 注意：生产环境应从环境变量读取，开发阶段先用硬编码。
 
-- [ ] **Step 7: 配置 alembic/env.py — 异步引擎 + 自动生成迁移**
+- [x] **Step 7: 配置 alembic/env.py — 异步引擎 + 自动生成迁移**
 
 替换 `alembic/env.py`，使其支持 asyncpg 和自动从 Base.metadata 生成迁移：
 
