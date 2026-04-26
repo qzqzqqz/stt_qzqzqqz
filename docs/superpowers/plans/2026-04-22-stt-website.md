@@ -837,7 +837,7 @@ app.include_router(api_router)
 - Modify: `backend/app/api/v1/__init__.py` — 注册转录路由
 - Modify: `backend/app/main.py` — 确保上传目录存在
 
-- [ ] **Step 1: 创建 Transcription Schemas**
+- [x] **Step 1: 创建 Transcription Schemas**
 
 ```python
 # backend/app/schemas/transcription.py
@@ -870,7 +870,7 @@ class TranscriptionResponse(TranscriptionBase):
     created_at: datetime
 ```
 
-- [ ] **Step 2: 创建文件上传服务**
+- [x] **Step 2: 创建文件上传服务**
 
 ```python
 # backend/app/services/upload.py
@@ -926,7 +926,7 @@ async def save_upload_file(file: UploadFile, user_id: str) -> tuple[str, int]:
     return str(file_path), size
 ```
 
-- [ ] **Step 3: 创建转录上传路由**
+- [x] **Step 3: 创建转录上传路由**
 
 ```python
 # backend/app/api/v1/transcription.py
@@ -968,7 +968,7 @@ async def create_transcription(
     return transcription
 ```
 
-- [ ] **Step 4: 注册转录路由到 v1 聚合器**
+- [x] **Step 4: 注册转录路由到 v1 聚合器**
 
 ```python
 # backend/app/api/v1/__init__.py
@@ -981,7 +981,7 @@ api_router.include_router(auth.router)
 api_router.include_router(transcription.router)
 ```
 
-- [ ] **Step 5: 确保上传目录在应用启动时存在**
+- [x] **Step 5: 确保上传目录在应用启动时存在**
 
 ```python
 # backend/app/main.py — 在 app 创建后添加
