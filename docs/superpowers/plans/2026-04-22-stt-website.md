@@ -260,7 +260,7 @@ async def get_db() -> AsyncSession:
         yield session
 ```
 
-- [ ] **Step 2: 创建 User 模型**
+- [x] **Step 2: 创建 User 模型**
 
 ```python
 # backend/app/models/user.py
@@ -286,7 +286,7 @@ class User(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 ```
 
-- [ ] **Step 3: 创建 Transcription 模型**
+- [x] **Step 3: 创建 Transcription 模型**
 
 ```python
 # backend/app/models/transcription.py
@@ -325,7 +325,7 @@ class Transcription(Base):
     user: Mapped["User"] = relationship("User", backref="transcriptions")
 ```
 
-- [ ] **Step 4: 更新 models/__init__.py 导出所有模型**
+- [x] **Step 4: 更新 models/__init__.py 导出所有模型**
 
 ```python
 # backend/app/models/__init__.py
