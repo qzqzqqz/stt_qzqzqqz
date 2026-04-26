@@ -561,7 +561,9 @@ CELERY_RESULT_BACKEND=redis://redis:6379/1
 UPLOAD_DIR=./uploads
 ```
 
-- [ ] **Step 5: 验证 Docker Compose 启动**
+- [x] **Step 5: 验证 Docker Compose 启动**
+
+文件已创建，验证待 Docker Desktop 启动后手动执行：
 
 ```bash
 # 启动服务
@@ -577,7 +579,7 @@ psql postgresql://qzqzqqz@localhost:5433/stt_qzqzqqz
 redis-cli -p 6380 ping
 ```
 
-> **说明：** 本地开发可继续使用现有的本地 PostgreSQL（5432）和 Redis（6379）。Docker Compose 是可选的标准化方案，不影响现有开发流程。
+> **说明：** 本地开发继续使用现有的本地 PostgreSQL（5432）和 Redis（6379）。Docker Compose 是可选的标准化方案，不影响现有开发流程。后续需要 Docker 环境时再启动验证。
 
 ---
 
