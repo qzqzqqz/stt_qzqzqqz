@@ -335,7 +335,7 @@ from app.models.transcription import Transcription
 __all__ = ["User", "Transcription"]
 ```
 
-- [ ] **Step 5: 初始化 Alembic**
+- [x] **Step 5: 初始化 Alembic**
 
 在 `backend/` 目录下执行：
 
