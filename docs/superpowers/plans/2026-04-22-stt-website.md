@@ -227,7 +227,7 @@ git commit -m "feat: initialize FastAPI backend scaffold with config and health 
 - Create: `backend/alembic/env.py`
 - Create: `backend/alembic/versions/` (initial migration)
 
-- [ ] **Step 1: 在 database.py 中定义转录状态枚举**
+- [x] **Step 1: 在 database.py 中定义转录状态枚举**
 
 在 `database.py` 中添加 TranscriptionStatus 枚举，供模型和迁移共用：
 
