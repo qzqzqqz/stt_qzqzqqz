@@ -1,6 +1,8 @@
+import io
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
 
@@ -14,6 +16,7 @@ from app.schemas.transcription import (
     TranscriptionListResponse,
     TranscriptionResponse,
 )
+from app.services.export import export_transcription
 from app.services.upload import save_upload_file
 from app.tasks.transcription import transcribe_audio
 
@@ -109,3 +112,48 @@ async def get_transcription(
         raise HTTPException(status_code=404, detail="Transcription not found")
 
     return transcription
+
+
+@router.get("/{transcription_id}/download")
+async def download_transcription(
+    transcription_id: uuid.UUID,
+    format: str = Query(..., description="导出格式: json, txt, srt, vtt, zip"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """下载转录结果（多种格式）."""
+    result = await db.execute(
+        select(Transcription).where(
+            Transcription.id == transcription_id,
+            Transcription.user_id == current_user.id,
+        )
+    )
+    transcription = result.scalar_one_or_none()
+
+    if not transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
+
+    if transcription.status != TranscriptionStatus.completed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transcription not completed (current status: {transcription.status.value})",
+        )
+
+    try:
+        mimetype, content = export_transcription(transcription, format)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    # 生成下载文件名
+    import os
+    base_name = os.path.splitext(transcription.filename)[0]
+    extension = format.lower()
+    download_filename = f"{base_name}.{extension}"
+
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=mimetype,
+        headers={
+            "Content-Disposition": f'attachment; filename="{download_filename}"',
+        },
+    )
