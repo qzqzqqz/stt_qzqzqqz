@@ -2220,7 +2220,7 @@ git commit -m "feat(task9): scaffold Vue3 frontend with Vite, Tailwind, Router, 
 - Modify: `frontend/src/views/RegisterView.vue` — 注册表单页面
 - Modify: `frontend/src/router/index.ts` — 登录后获取用户信息
 
-- [ ] **Step 1: 创建认证 API 模块**
+- [x] **Step 1: 创建认证 API 模块**
 
 ```typescript
 // frontend/src/api/auth.ts
@@ -2281,7 +2281,7 @@ export async function fetchCurrentUser(): Promise<User> {
 > - 注册接口使用 JSON，与后端 `UserCreate` schema 对应
 > - API 层只做 HTTP 调用，不处理状态管理（状态由 Pinia store 处理）
 
-- [ ] **Step 2: 更新 auth store**
+- [x] **Step 2: 更新 auth store**
 
 在 `frontend/src/stores/auth.ts` 中添加异步 actions：
 
@@ -2341,7 +2341,7 @@ export const useAuthStore = defineStore('auth', () => {
 > - `login()` 先获取 token，再调用 `/me` 获取用户信息，确保登录后 store 中 user 立即可用
 > - `fetchUser()` 在页面刷新时调用，从 token 恢复用户状态
 
-- [ ] **Step 3: 实现登录页面**
+- [x] **Step 3: 实现登录页面**
 
 ```vue
 <!-- frontend/src/views/LoginView.vue -->
@@ -2429,7 +2429,7 @@ async function handleSubmit() {
 > - 登录成功后跳转仪表盘，失败显示后端返回的错误信息
 > - 按钮 loading 状态防止重复提交
 
-- [ ] **Step 4: 实现注册页面**
+- [x] **Step 4: 实现注册页面**
 
 ```vue
 <!-- frontend/src/views/RegisterView.vue -->
@@ -2568,7 +2568,7 @@ async function handleSubmit() {
 > - 前端做密码一致性校验，避免不必要的后端请求
 > - 注册成功后跳转到登录页（而非自动登录），引导用户重新输入密码确认
 
-- [ ] **Step 5: 更新路由守卫**
+- [x] **Step 5: 更新路由守卫**
 
 修改 `frontend/src/router/index.ts`，在路由守卫中添加已登录用户的用户信息获取：
 
@@ -2603,7 +2603,7 @@ router.beforeEach(async (to, from, next) => {
 > - 路由守卫检测到 `access_token` 存在但 `user` 为空时，自动调用 `/me` 恢复用户状态
 > - `/me` 失败（token 过期）时清除认证状态并跳转登录页
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add frontend/src/api/auth.ts frontend/src/stores/auth.ts \
