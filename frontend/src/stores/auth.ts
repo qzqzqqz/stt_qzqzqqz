@@ -1,15 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-
-export interface User {
-  id: string
-  email: string
-  real_name: string
-  department: string
-  phone: string | null
-  is_active: boolean
-  created_at: string
-}
+import { login as loginApi, register as registerApi, fetchCurrentUser } from '@/api/auth'
+import type { LoginForm, RegisterForm, User } from '@/api/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref<string | null>(localStorage.getItem('access_token'))
@@ -33,17 +25,25 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('refresh_token')
   }
 
-  function setUser(userData: User) {
+  async function login(form: LoginForm) {
+    const data = await loginApi(form)
+    setTokens(data.access_token, data.refresh_token)
+    const userData = await fetchCurrentUser()
+    user.value = userData
+  }
+
+  async function register(form: RegisterForm) {
+    await registerApi(form)
+  }
+
+  async function fetchUser() {
+    if (!accessToken.value) return
+    const userData = await fetchCurrentUser()
     user.value = userData
   }
 
   return {
-    accessToken,
-    refreshToken,
-    user,
-    isAuthenticated,
-    setTokens,
-    clearAuth,
-    setUser,
+    accessToken, refreshToken, user,
+    isAuthenticated, login, register, fetchUser, clearAuth,
   }
 })
