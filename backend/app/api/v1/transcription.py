@@ -8,6 +8,7 @@ from app.models.transcription import Transcription
 from app.models.user import User
 from app.schemas.transcription import TranscriptionResponse
 from app.services.upload import save_upload_file
+from app.tasks.transcription import transcribe_audio
 
 router = APIRouter(prefix="/transcriptions", tags=["transcriptions"])
 
@@ -34,4 +35,8 @@ async def create_transcription(
     db.add(transcription)
     await db.commit()
     await db.refresh(transcription)
+
+    # 触发异步转录任务
+    transcribe_audio.delay(str(transcription.id))
+
     return transcription
