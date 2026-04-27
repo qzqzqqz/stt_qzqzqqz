@@ -1299,13 +1299,113 @@ git commit -m "feat: add Celery transcription worker with mlx-audio integration"
 
 ### Task 7: 转录结果 API — 列表/详情/状态查询
 
-（待细化）
+**Goal:** 实现转录任务的列表查询（分页）、详情查询和状态查询接口。
+
+**Files:**
+- Modify: `backend/app/schemas/transcription.py` — 新增详情/列表响应 Schema
+- Modify: `backend/app/api/v1/transcription.py` — 新增列表和详情端点
+
+**API 设计:**
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/v1/transcriptions/` | 分页列表，支持 `?page=`、`?page_size=`、`?status=` 筛选 |
+| `GET` | `/api/v1/transcriptions/{id}` | 详情查询，含完整 `result_json`、`result_text` |
+
+**Schema 变更:**
+
+新增 `TranscriptionDetailResponse`（继承 TranscriptionResponse，额外包含 `result_json`、`result_text`、`error_message`、`completed_at`）和 `TranscriptionListResponse`（分页包装：items, total, page, page_size, pages）。
+
+**列表端点逻辑:**
+1. 构建查询：`select(Transcription).where(user_id == current_user.id)`
+2. 可选状态筛选
+3. 按 `created_at.desc()` 排序
+4. offset/limit 分页
+5. 同时查询 count 计算总页数
+
+**详情端点逻辑:**
+1. 查询并鉴权（只能访问自己的记录）
+2. 不存在返回 404
+
+**权限控制:** 列表/详情均只能查询当前用户自己的转录任务。
+
+- [x] **Step 1: 更新 Transcription schemas**
+- [x] **Step 2: 添加列表和详情 API 端点**
+- [x] **Step 3: 提交**
+
+```bash
+git commit -m "feat(task7): add transcription list and detail API endpoints"
+```
 
 ---
 
 ### Task 8: 下载功能 — 多格式生成 + zip 打包 + 原始音频
 
-（待细化）
+**Goal:** 实现转录结果的多种格式下载，支持 JSON、TXT、SRT、VTT 字幕格式，以及 ZIP 打包（含所有格式 + 原始音频）。
+
+**Files:**
+- Create: `backend/app/services/export.py` — 格式转换核心服务
+- Modify: `backend/app/api/v1/transcription.py` — 添加下载端点
+
+**API 设计:**
+
+```
+GET /api/v1/transcriptions/{transcription_id}/download?format={format}
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `format` | string | 是 | `json`, `txt`, `srt`, `vtt`, `zip` |
+
+**响应:**
+- `200 OK` — `Content-Disposition: attachment`，返回文件流
+- `404` — 记录不存在
+- `400` — 格式非法或转录尚未完成
+
+**各格式内容规范:**
+
+| 格式 | 文件名 | Content-Type |
+|------|--------|--------------|
+| `json` | `recording.json` | `application/json` |
+| `txt` | `recording.txt` | `text/plain` |
+| `srt` | `recording.srt` | `text/plain` |
+| `vtt` | `recording.vtt` | `text/vtt` |
+| `zip` | `recording.zip` | `application/zip` |
+
+**export.py 核心函数:**
+
+- `_seconds_to_srt_time(seconds)` → `00:01:23,450`
+- `_seconds_to_vtt_time(seconds)` → `00:01:23.450`
+- `generate_json(transcription)` — 格式化 JSON（含 segments + metadata）
+- `generate_txt(transcription)` — 按说话人分段，含时间戳和完整文本
+- `generate_srt(transcription)` — SubRip 字幕格式
+- `generate_vtt(transcription)` — WebVTT 字幕格式
+- `generate_zip(transcription)` — 内存中打包（`io.BytesIO` + `zipfile`）
+- `export_transcription(transcription, format)` — 主分发函数，返回 `(mimetype, bytes)`
+
+**下载端点逻辑:**
+1. 查询并鉴权（同详情接口）
+2. 校验状态必须为 `completed`
+3. 校验 format 合法性
+4. 调用 `export_transcription()` 生成内容
+5. 返回 `StreamingResponse` + `Content-Disposition`
+
+**边界处理:**
+
+| 场景 | 处理 |
+|------|------|
+| 转录未完成 | 400 Bad Request |
+| result_json 为空 | 400 Bad Request |
+| format 非法 | 400 Bad Request，列出支持格式 |
+| ZIP 中音频文件缺失 | 跳过音频，仅包含文本格式 |
+
+- [x] **Step 1: 创建 export.py 格式转换服务**
+- [x] **Step 2: 添加 download 端点到 transcription.py**
+- [x] **Step 3: 提交**
+
+```bash
+git commit -m "feat(task8): add multi-format transcription download (json, txt, srt, vtt, zip)"
+```
 
 ---
 
