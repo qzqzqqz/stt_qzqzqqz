@@ -1710,7 +1710,7 @@ git commit -m "feat(task8): add multi-format transcription download (json, txt, 
 - Create: `frontend/src/components/AppLayout.vue`, `AppSidebar.vue`, `AppTopbar.vue`
 - Create: `frontend/src/views/LoginView.vue`, `RegisterView.vue`, `DashboardView.vue`, `HistoryView.vue`, `TranscriptionDetailView.vue`
 
-- [ ] **Step 1: 初始化 Vue3 + Vite 项目**
+- [x] **Step 1: 初始化 Vue3 + Vite 项目**
 
 ```bash
 cd /Users/qizhao/project_git/stt_qzqzqqz
@@ -1719,7 +1719,7 @@ npm create vite@latest frontend -- --template vue-ts
 
 选择 Vue + TypeScript，这会生成 `frontend/` 目录和基础文件结构。
 
-- [ ] **Step 2: 安装依赖**
+- [x] **Step 2: 安装依赖**
 
 ```bash
 cd frontend
@@ -1728,7 +1728,7 @@ npm install vue-router@4 pinia axios
 npm install -D tailwindcss @tailwindcss/vite
 ```
 
-- [ ] **Step 3: 配置 Tailwind CSS（The Sonic Gallery 设计系统）**
+- [x] **Step 3: 配置 Tailwind CSS（The Sonic Gallery 设计系统）**
 
 创建 `frontend/tailwind.config.ts`：
 
@@ -1796,7 +1796,7 @@ body {
 > - 无边框原则：用背景色差分层，禁用 1px solid 边框做区域划分
 > - 环境阴影使用 `rgba(42,52,57,0.06)`，不用纯黑
 
-- [ ] **Step 4: 配置 Vite 和路径别名**
+- [x] **Step 4: 配置 Vite 和路径别名**
 
 更新 `frontend/vite.config.ts`：
 
@@ -1839,7 +1839,7 @@ export default defineConfig({
 > - Vite dev server 代理 `/api` 到后端 `localhost:8000`，开发环境直接联调
 > - 路径别名 `@/` 指向 `src/`，避免相对路径 `../../../` 地狱
 
-- [ ] **Step 5: 配置 Vue Router + 路由守卫**
+- [x] **Step 5: 配置 Vue Router + 路由守卫**
 
 创建 `frontend/src/router/index.ts`：
 
@@ -1902,7 +1902,7 @@ export default router
 > - 未登录用户访问受保护路由自动跳转 `/login`
 > - 布局路由使用 `AppLayout.vue` 作为父级，子路由嵌套在内容区
 
-- [ ] **Step 6: 配置 Pinia 状态管理**
+- [x] **Step 6: 配置 Pinia 状态管理**
 
 创建 `frontend/src/stores/auth.ts`：
 
@@ -1971,7 +1971,7 @@ export const useAppStore = defineStore('app', () => {
 })
 ```
 
-- [ ] **Step 7: 创建 API 客户端**
+- [x] **Step 7: 创建 API 客户端**
 
 创建 `frontend/src/api/client.ts`：
 
@@ -2010,7 +2010,7 @@ export default client
 > - 请求拦截器自动附加 JWT token，无需每个 API 调用手动传 token
 > - 响应拦截器统一处理 401：清除 token 并跳转登录页
 
-- [ ] **Step 8: 创建布局组件**
+- [x] **Step 8: 创建布局组件**
 
 创建 `frontend/src/components/AppLayout.vue`：
 
@@ -2128,7 +2128,7 @@ const pageTitle = computed(() => {
 > - 左侧栏固定宽 64，主内容区 `max-w-7xl` 居中，适配大屏
 > - 导航当前项使用主色背景，非当前项 hover 显示 `surface-container-low`
 
-- [ ] **Step 9: 创建页面占位组件**
+- [x] **Step 9: 创建页面占位组件**
 
 创建 5 个空壳页面（后续 Task 10-13 填充内容）：
 
@@ -2144,7 +2144,7 @@ const pageTitle = computed(() => {
 
 同理创建 `RegisterView.vue`、`DashboardView.vue`、`HistoryView.vue`、`TranscriptionDetailView.vue`。
 
-- [ ] **Step 10: 配置应用入口**
+- [x] **Step 10: 配置应用入口**
 
 更新 `frontend/src/main.ts`：
 
@@ -2188,7 +2188,7 @@ app.mount('#app')
 </html>
 ```
 
-- [ ] **Step 11: 验证启动**
+- [x] **Step 11: 验证启动**
 
 ```bash
 cd frontend
@@ -2200,7 +2200,7 @@ npm run dev
 - `http://localhost:5173/` 因未登录自动跳转 `/login`
 - localStorage 中手动设置 `access_token=test` 后刷新 `/` 显示布局框架
 
-- [ ] **Step 12: 提交**
+- [x] **Step 12: 提交**
 
 ```bash
 git add frontend/
