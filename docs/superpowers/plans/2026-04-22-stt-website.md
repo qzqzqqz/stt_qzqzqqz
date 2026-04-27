@@ -1305,35 +1305,159 @@ git commit -m "feat: add Celery transcription worker with mlx-audio integration"
 - Modify: `backend/app/schemas/transcription.py` — 新增详情/列表响应 Schema
 - Modify: `backend/app/api/v1/transcription.py` — 新增列表和详情端点
 
-**API 设计:**
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| `GET` | `/api/v1/transcriptions/` | 分页列表，支持 `?page=`、`?page_size=`、`?status=` 筛选 |
-| `GET` | `/api/v1/transcriptions/{id}` | 详情查询，含完整 `result_json`、`result_text` |
-
-**Schema 变更:**
-
-新增 `TranscriptionDetailResponse`（继承 TranscriptionResponse，额外包含 `result_json`、`result_text`、`error_message`、`completed_at`）和 `TranscriptionListResponse`（分页包装：items, total, page, page_size, pages）。
-
-**列表端点逻辑:**
-1. 构建查询：`select(Transcription).where(user_id == current_user.id)`
-2. 可选状态筛选
-3. 按 `created_at.desc()` 排序
-4. offset/limit 分页
-5. 同时查询 count 计算总页数
-
-**详情端点逻辑:**
-1. 查询并鉴权（只能访问自己的记录）
-2. 不存在返回 404
-
-**权限控制:** 列表/详情均只能查询当前用户自己的转录任务。
-
 - [x] **Step 1: 更新 Transcription schemas**
+
+新增 `TranscriptionDetailResponse`（详情视图，含完整结果数据）和 `TranscriptionListResponse`（分页包装）：
+
+```python
+# backend/app/schemas/transcription.py
+import uuid
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
+
+from app.database import TranscriptionStatus
+
+
+class TranscriptionBase(BaseModel):
+    filename: str
+    language: str | None = None
+
+
+class TranscriptionCreate(TranscriptionBase):
+    pass
+
+
+class TranscriptionResponse(TranscriptionBase):
+    """列表视图响应 — 不包含完整结果数据."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    file_size: int
+    duration: float | None = None
+    status: TranscriptionStatus
+    model_used: str
+    created_at: datetime
+
+
+class TranscriptionDetailResponse(TranscriptionResponse):
+    """详情视图响应 — 包含完整转录结果."""
+
+    result_json: dict | None = None
+    result_text: str | None = None
+    error_message: str | None = None
+    completed_at: datetime | None = None
+
+
+class TranscriptionListResponse(BaseModel):
+    """分页列表响应."""
+
+    items: list[TranscriptionResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+```
+
 - [x] **Step 2: 添加列表和详情 API 端点**
+
+```python
+# backend/app/api/v1/transcription.py
+import uuid
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
+
+from app.api.deps import get_current_user, get_db
+from app.config import settings
+from app.database import TranscriptionStatus
+from app.models.transcription import Transcription
+from app.models.user import User
+from app.schemas.transcription import (
+    TranscriptionDetailResponse,
+    TranscriptionListResponse,
+    TranscriptionResponse,
+)
+from app.services.export import export_transcription
+from app.services.upload import save_upload_file
+from app.tasks.transcription import transcribe_audio
+
+router = APIRouter(prefix="/transcriptions", tags=["transcriptions"])
+
+
+@router.post("/", response_model=TranscriptionResponse, status_code=status.HTTP_201_CREATED)
+async def create_transcription(...):
+    """上传音频文件并创建转录任务."""
+    ...
+
+
+@router.get("/", response_model=TranscriptionListResponse)
+async def list_transcriptions(
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
+    status: TranscriptionStatus | None = Query(None, description="按状态筛选"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """查询当前用户的转录任务列表（分页）."""
+    query = select(Transcription).where(Transcription.user_id == current_user.id)
+    count_query = select(func.count()).select_from(Transcription).where(Transcription.user_id == current_user.id)
+
+    if status:
+        query = query.where(Transcription.status == status)
+        count_query = count_query.where(Transcription.status == status)
+
+    query = query.order_by(Transcription.created_at.desc())
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size)
+
+    result = await db.execute(query)
+    items = result.scalars().all()
+
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    pages = (total + page_size - 1) // page_size
+
+    return TranscriptionListResponse(
+        items=list(items), total=total, page=page, page_size=page_size, pages=pages,
+    )
+
+
+@router.get("/{transcription_id}", response_model=TranscriptionDetailResponse)
+async def get_transcription(
+    transcription_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """查询单个转录任务详情."""
+    result = await db.execute(
+        select(Transcription).where(
+            Transcription.id == transcription_id,
+            Transcription.user_id == current_user.id,
+        )
+    )
+    transcription = result.scalar_one_or_none()
+
+    if not transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
+
+    return transcription
+```
+
+> **设计说明:**
+> - 列表端点仅返回基础字段，不含 `result_json`/`result_text`，避免大字段拖慢列表加载
+> - 详情端点返回完整数据，供前端展示转录结果和下载
+> - 分页参数限制 `page_size` 最大 100，防止恶意大分页
+> - 两个端点均通过 `user_id == current_user.id` 鉴权，只能访问自己的记录
+
 - [x] **Step 3: 提交**
 
 ```bash
+git add app/api/v1/transcription.py app/schemas/transcription.py
 git commit -m "feat(task7): add transcription list and detail API endpoints"
 ```
 
@@ -1347,63 +1471,219 @@ git commit -m "feat(task7): add transcription list and detail API endpoints"
 - Create: `backend/app/services/export.py` — 格式转换核心服务
 - Modify: `backend/app/api/v1/transcription.py` — 添加下载端点
 
-**API 设计:**
-
-```
-GET /api/v1/transcriptions/{transcription_id}/download?format={format}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `format` | string | 是 | `json`, `txt`, `srt`, `vtt`, `zip` |
-
-**响应:**
-- `200 OK` — `Content-Disposition: attachment`，返回文件流
-- `404` — 记录不存在
-- `400` — 格式非法或转录尚未完成
-
-**各格式内容规范:**
-
-| 格式 | 文件名 | Content-Type |
-|------|--------|--------------|
-| `json` | `recording.json` | `application/json` |
-| `txt` | `recording.txt` | `text/plain` |
-| `srt` | `recording.srt` | `text/plain` |
-| `vtt` | `recording.vtt` | `text/vtt` |
-| `zip` | `recording.zip` | `application/zip` |
-
-**export.py 核心函数:**
-
-- `_seconds_to_srt_time(seconds)` → `00:01:23,450`
-- `_seconds_to_vtt_time(seconds)` → `00:01:23.450`
-- `generate_json(transcription)` — 格式化 JSON（含 segments + metadata）
-- `generate_txt(transcription)` — 按说话人分段，含时间戳和完整文本
-- `generate_srt(transcription)` — SubRip 字幕格式
-- `generate_vtt(transcription)` — WebVTT 字幕格式
-- `generate_zip(transcription)` — 内存中打包（`io.BytesIO` + `zipfile`）
-- `export_transcription(transcription, format)` — 主分发函数，返回 `(mimetype, bytes)`
-
-**下载端点逻辑:**
-1. 查询并鉴权（同详情接口）
-2. 校验状态必须为 `completed`
-3. 校验 format 合法性
-4. 调用 `export_transcription()` 生成内容
-5. 返回 `StreamingResponse` + `Content-Disposition`
-
-**边界处理:**
-
-| 场景 | 处理 |
-|------|------|
-| 转录未完成 | 400 Bad Request |
-| result_json 为空 | 400 Bad Request |
-| format 非法 | 400 Bad Request，列出支持格式 |
-| ZIP 中音频文件缺失 | 跳过音频，仅包含文本格式 |
-
 - [x] **Step 1: 创建 export.py 格式转换服务**
+
+```python
+# backend/app/services/export.py
+"""转录结果导出服务 — 支持 JSON、TXT、SRT、VTT、ZIP 多种格式."""
+
+import io
+import json
+import zipfile
+from datetime import timedelta
+
+from app.models.transcription import Transcription
+
+
+def _seconds_to_srt_time(seconds: float) -> str:
+    """秒数转 SRT 时间格式 HH:MM:SS,mmm."""
+    td = timedelta(seconds=seconds)
+    total_seconds = int(td.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+    millis = int((seconds - int(seconds)) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
+def _seconds_to_vtt_time(seconds: float) -> str:
+    """秒数转 VTT 时间格式 HH:MM:SS.mmm."""
+    td = timedelta(seconds=seconds)
+    total_seconds = int(td.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+    millis = int((seconds - int(seconds)) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}.{millis:03d}"
+
+
+def generate_json(transcription: Transcription) -> bytes:
+    data = {
+        "filename": transcription.filename,
+        "model": transcription.model_used,
+        "language": transcription.language,
+        "duration": transcription.duration,
+        "segments": transcription.result_json.get("segments", []) if transcription.result_json else [],
+        "metadata": {k: v for k, v in (transcription.result_json or {}).items() if k != "segments"},
+    }
+    return json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+
+
+def generate_txt(transcription: Transcription) -> bytes:
+    lines = []
+    lines.append("=" * 80)
+    lines.append(f"音频文件: {transcription.filename}")
+    lines.append(f"转录模型: {transcription.model_used}")
+    lines.append(f"语言: {transcription.language or '未知'}")
+    lines.append("=" * 80)
+    lines.append("")
+
+    for seg in _get_segments(transcription):
+        start = _seconds_to_srt_time(seg["start"])
+        end = _seconds_to_srt_time(seg["end"])
+        lines.append(f"[{start} - {end}] {seg['speaker']}:")
+        lines.append(seg["text"])
+        lines.append("")
+
+    lines.append("=" * 80)
+    lines.append("完整文本:")
+    lines.append("=" * 80)
+    lines.append(transcription.result_text or "")
+    return "\n".join(lines).encode("utf-8")
+
+
+def generate_srt(transcription: Transcription) -> bytes:
+    segments = _get_segments(transcription)
+    lines = []
+    for idx, seg in enumerate(segments, start=1):
+        start = _seconds_to_srt_time(seg["start"])
+        end = _seconds_to_srt_time(seg["end"])
+        lines.append(str(idx))
+        lines.append(f"{start} --> {end}")
+        lines.append(f"{seg['speaker']}: {seg['text']}")
+        lines.append("")
+    return "\n".join(lines).encode("utf-8")
+
+
+def generate_vtt(transcription: Transcription) -> bytes:
+    segments = _get_segments(transcription)
+    lines = [f"WEBVTT - {transcription.filename}", ""]
+    for seg in segments:
+        start = _seconds_to_vtt_time(seg["start"])
+        end = _seconds_to_vtt_time(seg["end"])
+        lines.append(f"{start} --> {end}")
+        lines.append(f"<v {seg['speaker']}>{seg['text']}</v>")
+        lines.append("")
+    return "\n".join(lines).encode("utf-8")
+
+
+def generate_zip(transcription: Transcription) -> bytes:
+    buffer = io.BytesIO()
+    base_name = transcription.filename.rsplit(".", 1)[0]
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(f"{base_name}.json", generate_json(transcription))
+        zf.writestr(f"{base_name}.txt", generate_txt(transcription))
+        zf.writestr(f"{base_name}.srt", generate_srt(transcription))
+        zf.writestr(f"{base_name}.vtt", generate_vtt(transcription))
+        import os
+        if os.path.exists(transcription.file_path):
+            zf.write(transcription.file_path, arcname=transcription.filename)
+    return buffer.getvalue()
+
+
+def _get_segments(transcription: Transcription) -> list[dict]:
+    if not transcription.result_json:
+        return []
+    return [
+        {
+            "start": seg.get("start_time", 0.0),
+            "end": seg.get("end_time", 0.0),
+            "speaker": f"Speaker {seg.get('speaker_id', 'Unknown')}",
+            "text": seg.get("text", "").strip(),
+        }
+        for seg in transcription.result_json.get("segments", [])
+    ]
+
+
+_FORMAT_MAP = {
+    "json": ("application/json", generate_json),
+    "txt": ("text/plain; charset=utf-8", generate_txt),
+    "srt": ("text/plain; charset=utf-8", generate_srt),
+    "vtt": ("text/vtt; charset=utf-8", generate_vtt),
+    "zip": ("application/zip", generate_zip),
+}
+
+
+def export_transcription(transcription: Transcription, format: str) -> tuple[str, bytes]:
+    fmt = format.lower()
+    if fmt not in _FORMAT_MAP:
+        raise ValueError(f"不支持的格式: {format}。支持: {', '.join(_FORMAT_MAP.keys())}")
+    if not transcription.result_json and fmt != "zip":
+        raise ValueError("转录结果数据不可用")
+    mimetype, generator = _FORMAT_MAP[fmt]
+    return mimetype, generator(transcription)
+```
+
+> **设计说明:**
+> - ZIP 使用 `io.BytesIO` 在内存中构建，不落磁盘临时文件
+> - SRT 时间格式 `HH:MM:SS,mmm`，VTT 时间格式 `HH:MM:SS.mmm`（毫秒分隔符差异）
+> - 所有生成函数接收 `Transcription` ORM 对象，统一从 `result_json` 提取 segments
+
 - [x] **Step 2: 添加 download 端点到 transcription.py**
+
+```python
+# backend/app/api/v1/transcription.py
+import io
+import os
+import uuid
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
+
+# ... 已有导入
+from app.services.export import export_transcription
+
+
+@router.get("/{transcription_id}/download")
+async def download_transcription(
+    transcription_id: uuid.UUID,
+    format: str = Query(..., description="导出格式: json, txt, srt, vtt, zip"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """下载转录结果（多种格式）."""
+    result = await db.execute(
+        select(Transcription).where(
+            Transcription.id == transcription_id,
+            Transcription.user_id == current_user.id,
+        )
+    )
+    transcription = result.scalar_one_or_none()
+
+    if not transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
+
+    if transcription.status != TranscriptionStatus.completed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transcription not completed (current status: {transcription.status.value})",
+        )
+
+    try:
+        mimetype, content = export_transcription(transcription, format)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    base_name = os.path.splitext(transcription.filename)[0]
+    download_filename = f"{base_name}.{format.lower()}"
+
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=mimetype,
+        headers={"Content-Disposition": f'attachment; filename="{download_filename}"'},
+    )
+```
+
+> **设计说明:**
+> - 端点返回 `StreamingResponse`，流式传输避免大文件占用过多内存
+> - 仅 `completed` 状态可下载，防止下载不完整结果
+> - `Content-Disposition: attachment` 强制浏览器下载而非预览
+> - ZIP 中原始音频文件不存在时自动跳过，不影响文本格式打包
+
 - [x] **Step 3: 提交**
 
 ```bash
+git add app/services/export.py app/api/v1/transcription.py
 git commit -m "feat(task8): add multi-format transcription download (json, txt, srt, vtt, zip)"
 ```
 
