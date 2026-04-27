@@ -1,12 +1,19 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+import uuid
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
 
 from app.api.deps import get_current_user, get_db
 from app.config import settings
 from app.database import TranscriptionStatus
 from app.models.transcription import Transcription
 from app.models.user import User
-from app.schemas.transcription import TranscriptionResponse
+from app.schemas.transcription import (
+    TranscriptionDetailResponse,
+    TranscriptionListResponse,
+    TranscriptionResponse,
+)
 from app.services.upload import save_upload_file
 from app.tasks.transcription import transcribe_audio
 
@@ -38,5 +45,67 @@ async def create_transcription(
 
     # 触发异步转录任务
     transcribe_audio.delay(str(transcription.id))
+
+    return transcription
+
+
+@router.get("/", response_model=TranscriptionListResponse)
+async def list_transcriptions(
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
+    status: TranscriptionStatus | None = Query(None, description="按状态筛选"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """查询当前用户的转录任务列表（分页）."""
+    # 构建查询
+    query = select(Transcription).where(Transcription.user_id == current_user.id)
+    count_query = select(func.count()).select_from(Transcription).where(Transcription.user_id == current_user.id)
+
+    if status:
+        query = query.where(Transcription.status == status)
+        count_query = count_query.where(Transcription.status == status)
+
+    # 按创建时间倒序
+    query = query.order_by(Transcription.created_at.desc())
+
+    # 分页
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size)
+
+    # 执行查询
+    result = await db.execute(query)
+    items = result.scalars().all()
+
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    pages = (total + page_size - 1) // page_size
+
+    return TranscriptionListResponse(
+        items=list(items),
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=pages,
+    )
+
+
+@router.get("/{transcription_id}", response_model=TranscriptionDetailResponse)
+async def get_transcription(
+    transcription_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """查询单个转录任务详情."""
+    result = await db.execute(
+        select(Transcription).where(
+            Transcription.id == transcription_id,
+            Transcription.user_id == current_user.id,
+        )
+    )
+    transcription = result.scalar_one_or_none()
+
+    if not transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
 
     return transcription

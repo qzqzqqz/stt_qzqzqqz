@@ -16,6 +16,8 @@ class TranscriptionCreate(TranscriptionBase):
 
 
 class TranscriptionResponse(TranscriptionBase):
+    """列表视图响应 — 不包含完整结果数据."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
@@ -25,3 +27,22 @@ class TranscriptionResponse(TranscriptionBase):
     status: TranscriptionStatus
     model_used: str
     created_at: datetime
+
+
+class TranscriptionDetailResponse(TranscriptionResponse):
+    """详情视图响应 — 包含完整转录结果."""
+
+    result_json: dict | None = None
+    result_text: str | None = None
+    error_message: str | None = None
+    completed_at: datetime | None = None
+
+
+class TranscriptionListResponse(BaseModel):
+    """分页列表响应."""
+
+    items: list[TranscriptionResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
