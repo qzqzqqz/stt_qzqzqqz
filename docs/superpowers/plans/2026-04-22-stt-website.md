@@ -22,7 +22,7 @@
 - Create: `backend/.env`
 - Create: `backend/.env.example`
 
-- [ ] **Step 1: 创建后端目录结构**
+- [x] **Step 1: 创建后端目录结构**
 
 ```bash
 mkdir -p backend/app/{api,models,services,tasks,schemas}
@@ -34,7 +34,7 @@ touch backend/app/tasks/__init__.py
 touch backend/app/schemas/__init__.py
 ```
 
-- [ ] **Step 2: 创建 requirements.txt**
+- [x] **Step 2: 创建 requirements.txt**
 
 ```
 # backend/requirements.txt
@@ -58,7 +58,7 @@ pytest-asyncio==0.26.0
 mlx-audio==0.3.0
 ```
 
-- [ ] **Step 3: 创建配置模块 config.py**
+- [x] **Step 3: 创建配置模块 config.py**
 
 ```python
 # backend/app/config.py
@@ -101,7 +101,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-- [ ] **Step 4: 创建 .env 和 .env.example**
+- [x] **Step 4: 创建 .env 和 .env.example**
 
 ```bash
 # backend/.env.example
@@ -115,7 +115,7 @@ UPLOAD_DIR=./uploads
 # backend/.env — 复制 .env.example 内容，开发环境可直接用默认值
 ```
 
-- [ ] **Step 5: 创建数据库连接模块**
+- [x] **Step 5: 创建数据库连接模块**
 
 ```python
 # backend/app/database.py
@@ -137,7 +137,7 @@ async def get_db() -> AsyncSession:
         yield session
 ```
 
-- [ ] **Step 6: 创建 FastAPI 主入口 main.py**
+- [x] **Step 6: 创建 FastAPI 主入口 main.py**
 
 ```python
 # backend/app/main.py
@@ -162,7 +162,7 @@ async def health_check():
     return {"status": "ok", "app": settings.APP_NAME}
 ```
 
-- [ ] **Step 7: 安装依赖并验证启动**
+- [x] **Step 7: 安装依赖并验证启动**
 
 ```bash
 cd backend
@@ -172,7 +172,7 @@ uvicorn app.main:app --reload --port 8000
 
 访问 `http://localhost:8000/api/health` 应返回 `{"status":"ok","app":"STT Transcription API"}`
 
-- [ ] **Step 8: 写健康检查测试**
+- [x] **Step 8: 写健康检查测试**
 
 ```python
 # backend/tests/__init__.py
@@ -197,7 +197,7 @@ async def test_health_check():
     assert data["status"] == "ok"
 ```
 
-- [ ] **Step 9: 运行测试验证**
+- [x] **Step 9: 运行测试验证**
 
 ```bash
 cd backend
@@ -206,7 +206,7 @@ pytest tests/test_health.py -v
 
 Expected: 1 passed
 
-- [ ] **Step 10: 提交**
+- [x] **Step 10: 提交**
 
 ```bash
 git init  # 如果还没有 git 仓库
@@ -457,7 +457,7 @@ git commit -m "feat: add SQLAlchemy models (User, Transcription) and Alembic mig
 - Create: `backend/Dockerfile`
 - Create: `.env.docker`
 
-- [ ] **Step 1: 创建 docker-compose.yml**
+- [x] **Step 1: 创建 docker-compose.yml**
 
 提供 PostgreSQL + Redis 两个服务，使用非冲突端口：
 
@@ -548,7 +548,7 @@ EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-- [ ] **Step 4: 创建 .env.docker**
+- [x] **Step 4: 创建 .env.docker**
 
 ```bash
 # .env.docker — Docker 环境专用配置
@@ -1020,7 +1020,7 @@ Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 
 ---
 
-- [ ] **Step 1: 创建同步数据库会话 `database_sync.py`**
+- [x] **Step 1: 创建同步数据库会话 `database_sync.py`**
 
 Celery Worker 运行在同步上下文中，无法直接使用 `create_async_engine`。创建一个独立的同步引擎，与主应用共用 `psycopg3` 驱动和同一套 URL：
 
@@ -1046,7 +1046,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 ---
 
-- [ ] **Step 2: 创建 Celery 应用配置 `celery_app.py`**
+- [x] **Step 2: 创建 Celery 应用配置 `celery_app.py`**
 
 ```python
 # backend/app/celery_app.py
@@ -1079,7 +1079,7 @@ celery_app.conf.update(
 
 ---
 
-- [ ] **Step 3: 创建转录 Celery Task `tasks/transcription.py`**
+- [x] **Step 3: 创建转录 Celery Task `tasks/transcription.py`**
 
 ```python
 # backend/app/tasks/transcription.py
@@ -1211,7 +1211,7 @@ __all__ = ["transcribe_audio"]
 
 ---
 
-- [ ] **Step 4: 修改上传接口，上传成功后触发 Celery 任务**
+- [x] **Step 4: 修改上传接口，上传成功后触发 Celery 任务**
 
 在 `backend/app/api/v1/transcription.py` 的 `create_transcription` 函数末尾，数据库提交后添加任务触发：
 
@@ -1233,7 +1233,7 @@ from app.tasks.transcription import transcribe_audio
 
 ---
 
-- [ ] **Step 5: 创建 Worker 启动入口 `celery_worker.py`**
+- [x] **Step 5: 创建 Worker 启动入口 `celery_worker.py`**
 
 ```python
 # backend/celery_worker.py
@@ -1260,7 +1260,7 @@ if __name__ == "__main__":
 
 ---
 
-- [ ] **Step 6: 验证流程（手动测试步骤）**
+- [x] **Step 6: 验证流程（手动测试步骤）**
 
 启动顺序（需要三个终端窗口）：
 
@@ -1286,7 +1286,7 @@ uvicorn app.main:app --reload --port 8000
 
 ---
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```bash
 git add backend/app/database_sync.py backend/app/celery_app.py \
