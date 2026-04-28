@@ -55,7 +55,7 @@ volumes:
   redis_data:
 ```
 
-- [ ] **Step 2: 创建 backend/.dockerignore**
+- [x] **Step 2: 创建 backend/.dockerignore**
 
 ```
 __pycache__
@@ -76,7 +76,7 @@ alembic/versions/*.py
 !alembic/versions/.gitkeep
 ```
 
-- [ ] **Step 3: 创建 backend/Dockerfile**
+- [x] **Step 3: 创建 backend/Dockerfile**
 
 ```dockerfile
 # backend/Dockerfile
