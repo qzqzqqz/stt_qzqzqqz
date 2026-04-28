@@ -6,14 +6,14 @@ class Settings(BaseSettings):
     APP_NAME: str = "STT Transcription API"
     DEBUG: bool = True
 
-    # Database
-    DATABASE_URL: str = "postgresql+asyncpg://stt:stt123@localhost:5432/stt_db"
+    # Database — 从 .env 文件读取，无默认值，启动时必须提供
+    DATABASE_URL: str
 
-    # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    # Redis — 从 .env 文件读取，无默认值，启动时必须提供
+    REDIS_URL: str
 
-    # JWT
-    JWT_SECRET_KEY: str = "change-this-to-a-secure-secret-in-production"
+    # JWT — 密钥从 .env 文件读取，无默认值，启动时必须提供
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -23,9 +23,9 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = 500
     ALLOWED_AUDIO_EXTENSIONS: set = {"wav", "mp3", "flac", "m4a", "ogg"}
 
-    # Celery
-    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
+    # Celery — 从 .env 文件读取，无默认值，启动时必须提供
+    CELERY_BROKER_URL: str
+    CELERY_RESULT_BACKEND: str
 
     # MLX-Audio
     STT_MODEL: str = "mlx-community/VibeVoice-ASR-bf16"
