@@ -1,4 +1,5 @@
 import io
+import os
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -157,3 +158,29 @@ async def download_transcription(
             "Content-Disposition": f'attachment; filename="{download_filename}"',
         },
     )
+
+
+@router.delete("/{transcription_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_transcription(
+    transcription_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """删除转录记录及其关联的音频文件."""
+    result = await db.execute(
+        select(Transcription).where(
+            Transcription.id == transcription_id,
+            Transcription.user_id == current_user.id,
+        )
+    )
+    transcription = result.scalar_one_or_none()
+
+    if not transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
+
+    # 删除磁盘上的音频文件
+    if os.path.exists(transcription.file_path):
+        os.remove(transcription.file_path)
+
+    await db.delete(transcription)
+    await db.commit()
