@@ -3997,7 +3997,7 @@ git add .gitignore backend/app/main.py frontend/src/api/client.ts
 git commit -m "feat(task15): enhance health checks, gitignore, and API timeout"
 ```
 
-> **收尾清单（手动验证）:**> - [ ] 访问 `http://localhost:8000/api/health` 返回包含 `database` 和 `redis` 字段的 JSON
-> - [ ] 确认 `.gitignore` 忽略 `.claude/` 和前端 `.env` 文件
-> - [ ] 确认前端 `npm run dev` 无编译错误
-> - [ ] 确认后端 `uvicorn app.main:app --reload` 正常启动
+> **收尾清单（手动验证）:**> - [x] 访问 `http://localhost:8000/api/health` 返回包含 `database` 和 `redis` 字段的 JSON
+> - [x] 确认 `.gitignore` 忽略 `.claude/` 和前端 `.env` 文件
+> - [x] 确认前端 `npm run dev` 无编译错误
+> - [x] 确认后端 `uvicorn app.main:app --reload` 正常启动
