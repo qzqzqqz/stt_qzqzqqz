@@ -6,6 +6,9 @@ from pathlib import Path
 
 from app.api.v1 import api_router
 from app.config import settings
+from app.logging_config import setup_logging
+
+setup_logging()
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 app.include_router(api_router)

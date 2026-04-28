@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import uuid
 
@@ -8,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
 
 from app.api.deps import get_current_user, get_db
+
+logger = logging.getLogger(__name__)
 from app.config import settings
 from app.database import TranscriptionStatus
 from app.models.transcription import Transcription
@@ -49,6 +52,7 @@ async def create_transcription(
 
     # 触发异步转录任务
     transcribe_audio.delay(str(transcription.id))
+    logger.info("Transcription created: %s (%s)", transcription.id, transcription.filename)
 
     return transcription
 
