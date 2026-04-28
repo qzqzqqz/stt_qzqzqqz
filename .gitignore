@@ -43,3 +43,11 @@ frontend/.vite/
 # Alembic 备份
 backend/alembic/versions/__pycache__/
 /stitch_minimal_audio_transcription/
+
+# Claude Code 会话数据
+.claude/
+
+# 前端环境变量
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local

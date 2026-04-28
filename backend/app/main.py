@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from pathlib import Path
 
@@ -23,4 +24,31 @@ app.add_middleware(
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok", "app": settings.APP_NAME}
+    health = {
+        "status": "ok",
+        "app": settings.APP_NAME,
+        "version": "1.0.0",
+    }
+
+    # 检查数据库连接
+    try:
+        from app.database import async_session
+        async with async_session() as db:
+            await db.execute(text("SELECT 1"))
+        health["database"] = "ok"
+    except Exception as e:
+        health["database"] = f"error: {str(e)}"
+        health["status"] = "degraded"
+
+    # 检查 Redis 连接
+    try:
+        import redis
+        r = redis.from_url(settings.REDIS_URL, socket_connect_timeout=2)
+        r.ping()
+        r.close()
+        health["redis"] = "ok"
+    except Exception as e:
+        health["redis"] = f"error: {str(e)}"
+        health["status"] = "degraded"
+
+    return health
