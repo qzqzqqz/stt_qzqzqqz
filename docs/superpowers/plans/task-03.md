@@ -136,5 +136,3 @@ redis-cli -p 6380 ping
 > **说明：** 本地开发继续使用现有的本地 PostgreSQL（5432）和 Redis（6379）。Docker Compose 是可选的标准化方案，不影响现有开发流程。后续需要 Docker 环境时再启动验证。
 
 ---
-
-## 阶段二：后端核心功能

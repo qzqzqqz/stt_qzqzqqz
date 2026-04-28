@@ -405,5 +405,3 @@ git commit -m "feat(task10): add auth API client and login/register pages"
 ```
 
 ---
-
-## 阶段四：前端业务页面

@@ -208,7 +208,7 @@ else:
     run_migrations_online()
 ```
 
-- [ ] **Step 8: 生成初始迁移脚本**
+- [x] **Step 8: 生成初始迁移脚本**
 
 ```bash
 cd /Users/qizhao/project_git/stt_qzqzqqz/backend
@@ -221,7 +221,7 @@ alembic revision --autogenerate -m "create users and transcriptions tables"
 - `transcriptionstatus` 枚举类型
 - 相应的索引（email unique, user_id index, status index）
 
-- [ ] **Step 9: 提交**
+- [x] **Step 9: 提交**
 
 ```bash
 git add backend/app/database.py backend/app/models/ backend/alembic/ backend/alembic.ini

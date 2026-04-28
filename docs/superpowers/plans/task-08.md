@@ -226,5 +226,3 @@ git commit -m "feat(task8): add multi-format transcription download (json, txt, 
 ```
 
 ---
-
-## 阶段三：前端基础

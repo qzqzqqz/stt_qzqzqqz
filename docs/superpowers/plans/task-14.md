@@ -118,5 +118,3 @@ git commit -m "feat(task14): add Transcription Detail page with audio player and
 > - 路由参数 `/:id` 已在 Task 9 的 router 中定义，无需修改
 
 ---
-
-## 阶段五：集成与收尾

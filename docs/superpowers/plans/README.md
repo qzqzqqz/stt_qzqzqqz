@@ -11,13 +11,13 @@
 
 ## 总体进度
 
-- **任务完成:** 13/15
-- **步骤完成:** 85/87
+- **任务完成:** 15/15
+- **步骤完成:** 87/87
 
 ### 阶段一：项目基础设施
 
 - ✅ **[Task 01](task-01.md)** — 后端项目脚手架 — FastAPI + 目录结构 + 配置 (10/10 步骤)
-- ⏳ **[Task 02](task-02.md)** — 数据库 — SQLAlchemy 模型 + Alembic 迁移 (7/9 步骤)
+- ✅ **[Task 02](task-02.md)** — 数据库 — SQLAlchemy 模型 + Alembic 迁移 (9/9 步骤)
 - ✅ **[Task 03](task-03.md)** — Docker Compose — PostgreSQL + Redis (5/5 步骤)
 
 ### 阶段二：后端核心功能
