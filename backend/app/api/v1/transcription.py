@@ -3,7 +3,7 @@ import os
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
 
@@ -58,6 +58,7 @@ async def list_transcriptions(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
     status: TranscriptionStatus | None = Query(None, description="按状态筛选"),
+    search: str | None = Query(None, description="按文件名搜索"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -69,6 +70,10 @@ async def list_transcriptions(
     if status:
         query = query.where(Transcription.status == status)
         count_query = count_query.where(Transcription.status == status)
+
+    if search:
+        query = query.where(Transcription.filename.ilike(f"%{search}%"))
+        count_query = count_query.where(Transcription.filename.ilike(f"%{search}%"))
 
     # 按创建时间倒序
     query = query.order_by(Transcription.created_at.desc())
@@ -184,3 +189,31 @@ async def delete_transcription(
 
     await db.delete(transcription)
     await db.commit()
+
+
+@router.get("/{transcription_id}/audio")
+async def download_audio(
+    transcription_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """下载原始音频文件."""
+    result = await db.execute(
+        select(Transcription).where(
+            Transcription.id == transcription_id,
+            Transcription.user_id == current_user.id,
+        )
+    )
+    transcription = result.scalar_one_or_none()
+
+    if not transcription:
+        raise HTTPException(status_code=404, detail="Transcription not found")
+
+    if not os.path.exists(transcription.file_path):
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    return FileResponse(
+        transcription.file_path,
+        filename=transcription.filename,
+        media_type="application/octet-stream",
+    )
