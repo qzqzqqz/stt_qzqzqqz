@@ -251,7 +251,7 @@ function statusLabel(status: string): string {
 
 function statusTagClass(status: string): string {
   const map: Record<string, string> = {
-    pending: 'bg-slate-100 text-slate-600',
+    pending: 'bg-surface-container-low text-on-surface-variant',
     processing: 'bg-blue-50 text-blue-700',
     completed: 'bg-green-50 text-green-700',
     failed: 'bg-red-50 text-red-700',
