@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,13 +10,23 @@ from pathlib import Path
 
 from app.api.v1 import api_router
 from app.config import settings
-from app.logging_config import setup_logging
+from app.logging_config import request_id_ctx, setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 app.include_router(api_router)
+
+
+@app.middleware("http")
+async def add_request_context(request: Request, call_next):
+    """为每个请求生成 request_id，注入日志上下文，并附加到响应头."""
+    request_id = str(uuid.uuid4())[:8]
+    request_id_ctx.set(request_id)
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.middleware("http")

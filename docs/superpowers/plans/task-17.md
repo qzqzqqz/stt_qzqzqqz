@@ -16,7 +16,7 @@
 - Modify: `backend/app/main.py`
 - Modify: `backend/app/celery_app.py`
 
-- [ ] **Step 1: 过滤 SQLAlchemy 引擎日志**
+- [x] **Step 1: 过滤 SQLAlchemy 引擎日志**
 
 将 SQLAlchemy 引擎日志级别设为 WARNING，避免 `app.log` 被 SQL 语句淹没：
 
@@ -28,7 +28,7 @@ logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
 
 > 说明：保留 WARNING 以上级别（连接失败等），过滤掉 INFO 级别的 `SELECT 1`、`ROLLBACK` 等常规 SQL。
 
-- [ ] **Step 2: 统一 uvicorn 访问日志格式**
+- [x] **Step 2: 统一 uvicorn 访问日志格式**
 
 配置 uvicorn 使用与业务日志相同的格式：
 
@@ -42,7 +42,7 @@ uvicorn_access.setLevel(logging.INFO)
 
 > 说明：uvicorn 默认的访问日志格式是 `127.0.0.1 - GET /api/health HTTP/1.1 200 OK`，统一后变为 `2026-05-06 10:23:45 | INFO | uvicorn.access | 127.0.0.1 GET /api/health 200`。
 
-- [ ] **Step 3: 添加 request_id 上下文中间件**
+- [x] **Step 3: 添加 request_id 上下文中间件**
 
 在 `main.py` 中添加中间件，为每个请求生成唯一 ID，并注入到日志上下文中：
 
@@ -65,7 +65,7 @@ async def add_request_context(request: Request, call_next):
 
 > 说明：`ContextVar` 是线程/协程安全的上下文变量，确保同一请求内的所有日志都带相同的 request_id。
 
-- [ ] **Step 4: 改造日志格式，支持 request_id**
+- [x] **Step 4: 改造日志格式，支持 request_id**
 
 修改 `logging_config.py` 中的 `LOG_FORMAT`，通过 Filter 动态注入 request_id：
 
@@ -98,7 +98,7 @@ error_handler.addFilter(request_id_filter)
 > 2026-05-06 10:23:47 | INFO  | app.api.v1.transcription | req=def456gh | Transcription created: uuid-xxx (test.mp3)
 > ```
 
-- [ ] **Step 5: 修复 Celery 日志重复**
+- [x] **Step 5: 修复 Celery 日志重复**
 
 `app.tasks` 的日志既进入 `celery.log`（直接 handler）又进入 `app.log`（通过 root logger propagate）。解决方式：
 
@@ -112,7 +112,7 @@ celery_logger.propagate = False  # 阻止进入 root logger → app.log
 
 > 说明：`propagate = False` 后，Celery 日志只进入 `celery.log`，不再重复进入 `app.log`。
 
-- [ ] **Step 6: 验证日志输出**
+- [x] **Step 6: 验证日志输出**
 
 启动后端，发送几个请求，检查：
 1. `app.log` 中**没有** SQLAlchemy 的 `SELECT 1` / `ROLLBACK` 日志
@@ -121,7 +121,7 @@ celery_logger.propagate = False  # 阻止进入 root logger → app.log
 4. `celery.log` 有内容但 `app.log` 中**没有**重复的 Celery 日志
 5. 响应头中有 `X-Request-ID`
 
-- [ ] **Step 7: 提交代码**
+- [x] **Step 7: 提交代码**
 
 ```bash
 git add backend/app/logging_config.py backend/app/main.py backend/app/celery_app.py
