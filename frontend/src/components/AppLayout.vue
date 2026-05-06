@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen bg-surface">
     <AppSidebar />
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="flex-1 flex flex-col min-w-0 ml-64">
       <AppTopbar />
       <main class="flex-1 overflow-auto p-6">
         <div class="max-w-7xl mx-auto">
