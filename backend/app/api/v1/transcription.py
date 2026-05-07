@@ -2,6 +2,7 @@ import io
 import logging
 import os
 import uuid
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
@@ -27,7 +28,7 @@ from app.tasks.transcription import transcribe_audio
 router = APIRouter(prefix="/transcriptions", tags=["transcriptions"])
 
 
-@router.post("/", response_model=TranscriptionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TranscriptionResponse, status_code=status.HTTP_201_CREATED)
 async def create_transcription(
     file: UploadFile = File(...),
     language: str | None = None,
@@ -57,7 +58,7 @@ async def create_transcription(
     return transcription
 
 
-@router.get("/", response_model=TranscriptionListResponse)
+@router.get("", response_model=TranscriptionListResponse)
 async def list_transcriptions(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
@@ -154,17 +155,20 @@ async def download_transcription(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-    # 生成下载文件名
-    import os
+    # 生成下载文件名（RFC 5987 编码，支持中文）
     base_name = os.path.splitext(transcription.filename)[0]
     extension = format.lower()
     download_filename = f"{base_name}.{extension}"
+    encoded_filename = quote(download_filename)
 
     return StreamingResponse(
         io.BytesIO(content),
         media_type=mimetype,
         headers={
-            "Content-Disposition": f'attachment; filename="{download_filename}"',
+            "Content-Disposition": (
+                f"attachment; filename=\"{download_filename}\"; "
+                f"filename*=UTF-8''{encoded_filename}"
+            ),
         },
     )
 

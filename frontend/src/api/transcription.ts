@@ -1,11 +1,13 @@
 import client from './client'
 
-export enum TranscriptionStatus {
-  pending = 'pending',
-  processing = 'processing',
-  completed = 'completed',
-  failed = 'failed',
-}
+export const TranscriptionStatus = {
+  pending: 'pending',
+  processing: 'processing',
+  completed: 'completed',
+  failed: 'failed',
+} as const
+
+export type TranscriptionStatus = (typeof TranscriptionStatus)[keyof typeof TranscriptionStatus]
 
 export interface Transcription {
   id: string
@@ -101,28 +103,41 @@ export async function downloadTranscription(
   id: string,
   format: 'json' | 'txt' | 'srt' | 'vtt' | 'zip'
 ): Promise<void> {
-  const response = await client.get(`/v1/transcriptions/${id}/download`, {
-    params: { format },
-    responseType: 'blob',
-  })
+  console.log('[download] starting:', id, format)
+  try {
+    const response = await client.get(`/v1/transcriptions/${id}/download`, {
+      params: { format },
+      responseType: 'blob',
+    })
+    console.log('[download] response:', response.status, response.headers)
 
-  const contentDisposition = response.headers['content-disposition'] as
-    | string
-    | undefined
-  let filename = `${id}.${format}`
-  if (contentDisposition) {
-    const match = contentDisposition.match(/filename="?([^"]+)"?/)
-    if (match) filename = match[1]
+    const contentDisposition = response.headers['content-disposition'] as
+      | string
+      | undefined
+    let filename = `${id}.${format}`
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^"]+)"?/)
+      if (match) filename = match[1]
+    }
+    console.log('[download] filename:', filename)
+
+    const blob = response.data instanceof Blob ? response.data : new Blob([response.data])
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    setTimeout(() => {
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    }, 100)
+    console.log('[download] done')
+  } catch (err: any) {
+    console.error('[download] failed:', err)
+    alert(`下载失败: ${err.response?.data?.detail || err.message || '未知错误'}`)
+    throw err
   }
-
-  const url = window.URL.createObjectURL(new Blob([response.data]))
-  const link = document.createElement('a')
-  link.href = url
-  link.setAttribute('download', filename)
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  window.URL.revokeObjectURL(url)
 }
 
 export async function deleteTranscription(id: string): Promise<void> {

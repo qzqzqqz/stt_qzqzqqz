@@ -50,10 +50,65 @@
         </div>
       </div>
 
-      <!-- Segments 列表 -->
+      <!-- 转录结果 -->
       <div class="lg:col-span-3">
+        <!-- 视图切换 -->
         <div
-          v-if="transcription.status === TranscriptionStatus.completed && segments.length > 0"
+          v-if="transcription.status === TranscriptionStatus.completed && hasResult"
+          class="flex items-center gap-1 mb-4 bg-surface-container-low rounded-lg p-1 w-fit"
+        >
+          <button
+            @click="activeView = 'transcript'"
+            class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+            :class="activeView === 'transcript' ? 'bg-surface-container-high text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'"
+          >
+            文字稿
+          </button>
+          <button
+            @click="activeView = 'timeline'"
+            class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+            :class="activeView === 'timeline' ? 'bg-surface-container-high text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'"
+          >
+            时间轴
+          </button>
+        </div>
+
+        <!-- 文字稿视图 -->
+        <div
+          v-if="transcription.status === TranscriptionStatus.completed && activeView === 'transcript' && transcriptParagraphs.length > 0"
+          class="bg-surface-container-lowest rounded-xl p-6 space-y-6"
+        >
+          <div
+            v-for="(para, idx) in transcriptParagraphs"
+            :key="idx"
+            class="group"
+          >
+            <div class="flex items-start gap-3">
+              <div class="shrink-0 pt-0.5">
+                <span
+                  class="inline-block px-3 py-1 text-xs font-medium rounded-full"
+                  :class="speakerColorClass(para.speaker)"
+                >
+                  {{ para.speaker }}
+                </span>
+              </div>
+              <p class="text-sm text-on-surface leading-relaxed flex-1">{{ para.text }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-else-if="transcription.status === TranscriptionStatus.completed && activeView === 'transcript' && transcription.result_text"
+          class="bg-surface-container-lowest rounded-xl p-6"
+        >
+          <p class="text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
+            {{ transcription.result_text }}
+          </p>
+        </div>
+
+        <!-- 时间轴视图 -->
+        <div
+          v-else-if="transcription.status === TranscriptionStatus.completed && activeView === 'timeline' && segments.length > 0"
           class="bg-surface-container-lowest rounded-xl p-6 space-y-6"
         >
           <div v-for="(seg, idx) in segments" :key="idx" class="group">
@@ -77,15 +132,6 @@
         </div>
 
         <div
-          v-else-if="transcription.status === TranscriptionStatus.completed && transcription.result_text"
-          class="bg-surface-container-lowest rounded-xl p-6"
-        >
-          <p class="text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
-            {{ transcription.result_text }}
-          </p>
-        </div>
-
-        <div
           v-else-if="transcription.status === TranscriptionStatus.processing"
           class="bg-surface-container-lowest rounded-xl p-12 flex flex-col items-center justify-center"
         >
@@ -106,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import InfoRow from './InfoRow.vue'
 import {
   TranscriptionStatus,
@@ -117,6 +163,8 @@ import {
 const props = defineProps<{
   transcription: TranscriptionDetail | null
 }>()
+
+const activeView = ref<'timeline' | 'transcript'>('transcript')
 
 const downloadFormats = ['json', 'txt', 'srt', 'vtt', 'zip'] as const
 
@@ -158,6 +206,32 @@ const segments = computed(() => {
     speaker: `Speaker ${seg.speaker_id}`,
     text: seg.text,
   }))
+})
+
+const hasResult = computed(() => {
+  return !!(
+    props.transcription?.result_json?.segments?.length ||
+    props.transcription?.result_text
+  )
+})
+
+const transcriptParagraphs = computed(() => {
+  if (!props.transcription?.result_json?.segments) return []
+  const segs = props.transcription.result_json.segments
+  const paragraphs: { speaker: string; text: string }[] = []
+  let current: { speaker: string; text: string } | null = null
+
+  for (const seg of segs) {
+    const speaker = `Speaker ${seg.speaker_id}`
+    if (!current || current.speaker !== speaker) {
+      if (current) paragraphs.push(current)
+      current = { speaker, text: seg.text }
+    } else {
+      current.text += seg.text
+    }
+  }
+  if (current) paragraphs.push(current)
+  return paragraphs
 })
 
 const speakerColors: Record<string, string> = {

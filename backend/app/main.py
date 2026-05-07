@@ -8,6 +8,9 @@ from sqlalchemy import text
 
 from pathlib import Path
 
+# 提前导入 celery_app，确保 @shared_task 绑定到正确的应用（避免默认 pyamqp transport）
+from app.celery_app import celery_app  # noqa: F401
+
 from app.api.v1 import api_router
 from app.config import settings
 from app.logging_config import request_id_ctx, setup_logging
